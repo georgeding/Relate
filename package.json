@@ -1,0 +1,24 @@
+{
+  "name": "relate",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted AI assistant for your chats: connect Telegram, any HTTP/SSE source, voice recordings and (optionally) WeChat into spaces (relationship, business, team) with live memory, todos, plugins and an MCP server.",
+  "scripts": {
+    "start": "node hub.js",
+    "hub": "node hub.js",
+    "space": "node server.js",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "test:live": "node test/live/weflow.live.mjs && node test/live/ai.live.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "pg": "^8.22.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.6.5"
+  },
+  "license": "AGPL-3.0-only"
+}

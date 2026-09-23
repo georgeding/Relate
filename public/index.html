@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relate</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --ink:#2d2a26; --sub:#7a746c;
+    --g:#4a7ba6; --e:#c97b84; --line:#e8e2da; --warn:#b3542e; --calm:#5a8a6a;
+    --soft:#f3efe9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+  header{text-align:center;margin-bottom:8px}
+  header h1{font-size:26px;font-weight:700;letter-spacing:1px}
+  header p{color:var(--sub);font-size:14px;margin-top:6px}
+  .legend{display:flex;justify-content:center;gap:24px;margin:14px 0 6px;font-size:13px;color:var(--sub)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+  nav{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:22px 0 28px;position:sticky;top:0;background:var(--bg);padding:12px 0;z-index:9}
+  nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 18px;border-radius:20px;font-size:14px;cursor:pointer;transition:.2s}
+  nav button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  section{display:none}
+  section.on{display:block;animation:fade .35s}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .kpi .num{font-size:28px;font-weight:700}
+  .kpi .lbl{font-size:13px;color:var(--sub);margin-top:2px}
+  .card h3{font-size:16px;margin-bottom:12px}
+  .card h3 small{color:var(--sub);font-weight:400;font-size:12px;margin-left:8px}
+  .chartbox{position:relative;height:280px}
+  .note{background:var(--soft);border-radius:10px;padding:12px 16px;font-size:13.5px;color:var(--sub);margin-top:14px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.two{grid-template-columns:1fr}}
+  .timeline{list-style:none}
+  .timeline li{display:flex;gap:14px;padding:10px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .timeline .d{flex:0 0 88px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .sev{flex:0 0 64px;text-align:center;border-radius:8px;font-size:12px;padding:2px 0;height:26px;line-height:22px}
+  .s0{background:#e4efe7;color:var(--calm)}
+  .s1{background:#f5ecdf;color:#9a7b3f}
+  .s2{background:#f7e3d3;color:#b3702e}
+  .s3{background:#f6d6cc;color:#b3542e}
+  .s4{background:#f2c4bb;color:#a03a2a}
+  .s5{background:#eab0a6;color:#7c2418}
+  .ep h4{font-size:15px;margin-bottom:6px}
+  .ep{margin-bottom:14px}
+  .ep .meta{font-size:12.5px;color:var(--sub);margin-bottom:8px}
+  .quote{border-left:3px solid var(--line);padding:2px 12px;margin:8px 0;font-size:13.5px;color:var(--sub);font-style:italic}
+  details{border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:12px;overflow:hidden}
+  details summary{padding:14px 18px;cursor:pointer;font-size:14.5px;font-weight:600;list-style:none;display:flex;align-items:center;gap:10px}
+  details summary::after{content:"＋";margin-left:auto;color:var(--sub)}
+  details[open] summary::after{content:"－"}
+  details .body{padding:0 18px 16px;font-size:14px;color:#4a453f}
+  .pill{font-size:11.5px;padding:2px 10px;border-radius:10px}
+  .pillE{background:#f7e6e8;color:var(--e)}
+  .pillG{background:#e6edf5;color:var(--g)}
+  .fair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.fair{grid-template-columns:1fr}}
+  .fair .card ul{padding-left:18px;font-size:13.5px}
+  .fair .card li{margin-bottom:8px}
+  .fair h3{display:flex;align-items:center;gap:8px}
+  .good{color:var(--calm);font-weight:600;font-size:13px;margin:12px 0 6px}
+  .bad{color:var(--warn);font-weight:600;font-size:13px;margin:12px 0 6px}
+  .cycle{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;text-align:center}
+  .cycle .step{display:inline-block;background:var(--soft);border-radius:10px;padding:8px 14px;margin:6px 4px;font-size:13.5px}
+  .cycle .arrow{color:var(--sub);margin:0 2px}
+  .care{background:linear-gradient(135deg,#fdf6ee,#f7efe6);border:1px solid #ecd9c0;border-radius:14px;padding:26px}
+  .care h3{margin-bottom:12px}
+  .care p{font-size:14.5px;margin-bottom:12px}
+  .care .res{background:#fff;border-radius:10px;padding:14px 18px;font-size:14px;margin-top:10px}
+  .footer{text-align:center;color:var(--sub);font-size:12px;margin-top:40px}
+  .bothnote{background:var(--soft);border-radius:12px;padding:16px 20px;font-size:14px;margin-bottom:20px;color:#4a453f}
+  /* heatmap */
+  .hm-scroll{overflow-x:auto;padding-bottom:6px}
+  .hm-months{display:flex;margin-left:26px;font-size:11px;color:var(--sub);height:16px;position:relative}
+  .hm-months span{position:absolute;top:0}
+  .hm-body{display:flex}
+  .hm-days{display:grid;grid-template-rows:repeat(7,14px);gap:3px;margin-right:6px;font-size:10px;color:var(--sub);width:20px}
+  .hm-days span{line-height:14px;text-align:right}
+  .hm-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);gap:3px}
+  .hm-cell{width:14px;height:14px;border-radius:3px;display:inline-block}
+  .hm-cell.clickable{cursor:pointer}
+  .l0{background:#ebe6de}
+  .l1{background:#f2ddca}
+  .l2{background:#eebfa2}
+  .l3{background:#e29a78}
+  .l4{background:#cf6b4e}
+  .l5{background:#a63a26}
+  .lnone{background:transparent;border:1px dashed #ddd6cc}
+  .lfuture{background:transparent}
+  .hm-legend{display:flex;align-items:center;gap:4px;margin-top:10px}
+  .hm-tip{min-height:22px;font-size:13px;color:var(--sub);margin-top:8px}
+
+  /* ---- live layer ---- */
+  .livebar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .ldot{width:9px;height:9px;border-radius:50%;background:#c0392b;box-shadow:0 0 0 0 rgba(90,138,106,.5)}
+  .ldot.on{background:var(--calm);animation:lp 2s infinite}
+  @keyframes lp{0%{box-shadow:0 0 0 0 rgba(90,138,106,.5)}70%{box-shadow:0 0 0 7px rgba(90,138,106,0)}100%{box-shadow:0 0 0 0 rgba(90,138,106,0)}}
+  .tagm{font-size:11px;color:var(--sub);background:var(--soft);padding:2px 9px;border-radius:11px}
+  .feed{max-height:460px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px}
+  .bub{max-width:72%;min-width:64px;padding:8px 12px;border-radius:13px;font-size:13.5px;position:relative;animation:fade .3s}
+  .bub .t{font-size:10.5px;color:var(--sub);margin-bottom:2px}
+  .bE{align-self:flex-start;background:#f7edee;border:1px solid #f0dde0}
+  .bG{align-self:flex-end;background:#e9f0f7;border:1px solid #d8e5f0}
+  .btag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:9px;margin-left:6px;vertical-align:1px}
+  .btag.c{background:#f6d6cc;color:#b3542e}
+  .btag.s{background:#e6edf5;color:var(--g)}
+  .btag.v{background:#e4efe7;color:var(--calm)}
+  .btag.care{background:#eab0a6;color:#7c2418}
+  .voice{font-style:normal}
+  .voice::before{content:"🎙 ";opacity:.7}
+  /* todos */
+  .todocol h4{font-size:14px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .todocol h4 .cc{margin-left:auto;font-size:12px;color:var(--sub)}
+  .todo{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .todo:last-child{border-bottom:0}
+  .chk{width:17px;height:17px;border:1.5px solid var(--sub);border-radius:5px;flex:0 0 auto;margin-top:2px;cursor:pointer;transition:.15s}
+  .chk:hover{border-color:var(--ink)}
+  .todo.done .chk{background:var(--calm);border-color:var(--calm)}
+  .todo.done .tx{text-decoration:line-through;opacity:.5}
+  .todo .mt{font-size:11px;color:var(--sub);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+  .kt{font-size:10px;padding:1px 7px;border-radius:9px;font-weight:600}
+  .kt.reply{background:#e6f0ee;color:var(--calm)} .kt.sensitive{background:#f6d6cc;color:#b3542e}
+  .kt.promise{background:#e6edf5;color:var(--g)} .kt.discuss{background:#f3ecdf;color:#9a7b3f}
+  .u-high{color:var(--warn);font-weight:600}
+  .cred{font-size:10px;padding:1px 6px;border-radius:8px}
+  .cred.no{background:#f6d6cc;color:#b3542e} .cred.yes{background:#e4efe7;color:var(--calm)}
+  /* reply preview + ask */
+  .draftbox{background:linear-gradient(135deg,#fdf9f4,#f6f0e8);border:1px solid #ecd9c0;border-radius:12px;padding:16px;margin-top:12px}
+  .draftbox .d{font-size:15px;line-height:1.7}
+  .draftbox .meta{font-size:12px;color:var(--sub);margin-top:8px}
+  .btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 16px;border-radius:20px;font-size:13.5px;cursor:pointer}
+  .btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .askin{display:flex;gap:8px;margin-bottom:14px}
+  .askin input{flex:1;padding:11px 16px;border:1px solid var(--line);border-radius:22px;font-size:14px;background:var(--card);color:var(--ink);font-family:inherit}
+  .qhit{font-size:12.5px;color:var(--sub);border-left:2px solid var(--line);padding:4px 10px;margin:6px 0;white-space:pre-wrap}
+  .qhit.used{border-left-color:#39a0a8;background:rgba(57,160,168,.06)}
+  .mdbody{font-size:14.5px;line-height:1.72;color:var(--ink);word-break:break-word}
+  .mdbody .mdh{font-weight:700;margin:15px 0 7px;color:var(--ink)}
+  .mdbody .mdh1{font-size:16.5px;border-bottom:2px solid var(--line);padding-bottom:5px}
+  .mdbody .mdh2{font-size:15px;color:var(--calm)}
+  .mdbody .mdh3{font-size:13.5px;color:var(--sub);letter-spacing:.02em}
+  .mdbody .mdh:first-child{margin-top:0}
+  .mdbody .mdp{margin:7px 0}
+  .mdbody .mdul{margin:7px 0;padding-left:20px}
+  .mdbody .mdul li{margin:4px 0}
+  .mdbody .mdol{list-style:decimal}
+  .mdbody code{background:var(--line);border-radius:4px;padding:1px 5px;font-size:.9em;font-family:ui-monospace,Menlo,monospace}
+  .mdbody .mdhr{border:0;border-top:1px solid var(--line);margin:12px 0}
+  .mdbody .mdq{border-left:3px solid var(--calm);background:rgba(0,0,0,.03);margin:9px 0;padding:7px 12px;border-radius:0 8px 8px 0;color:var(--sub)}
+  .mdtw{overflow-x:auto;margin:10px 0}
+  .mdt{border-collapse:collapse;width:100%;font-size:13px}
+  .mdt th,.mdt td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  .mdt th{background:rgba(0,0,0,.04);font-weight:600}
+  .mdt tr:nth-child(even) td{background:rgba(0,0,0,.015)}
+  .cref{color:#39a0a8;font-weight:600;font-size:.9em}
+  #checkupCard h3 small{font-weight:400;color:var(--sub)}
+  /* chat thread */
+  #askout{max-height:60vh;overflow-y:auto}
+  .bubu{align-self:flex-end;margin:10px 0 4px auto;max-width:82%;background:var(--ink);color:#fff;padding:9px 13px;border-radius:14px 14px 3px 14px;font-size:14px;width:fit-content}
+  .buba{margin:4px auto 14px 0;max-width:94%;background:var(--card,#fff);border:1px solid var(--line);padding:11px 14px;border-radius:3px 14px 14px 14px}
+  .qsrc{margin-top:10px}
+  .askin{display:flex;gap:8px}
+  .cursor{display:inline-block;width:7px;height:15px;background:var(--calm);margin-left:2px;vertical-align:-2px;animation:blink 1s step-start infinite}
+  @keyframes blink{50%{opacity:0}}
+  /* business per-chat list */
+  .bizchat{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;cursor:pointer;background:var(--card,#fff)}
+  .bizchat:hover{border-color:var(--ink);background:rgba(0,0,0,.02)}
+  .bc-name{font-weight:600;font-size:14.5px;color:var(--ink)}
+  .bc-meta{font-size:12px;color:var(--sub);white-space:nowrap}
+  .bc-back{color:var(--calm);cursor:pointer;font-size:13px;margin-bottom:10px}
+  .bc-head{font-weight:700;font-size:15px;margin-bottom:8px}
+  .bc-msg{font-size:13.5px;line-height:1.6;padding:4px 0;border-bottom:1px solid var(--line)}
+  .bc-msg b{color:var(--sub);font-weight:600;margin-right:4px}
+  .bc-msg.me b{color:var(--ink)}
+  /* business 概览 board */
+  .bizboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .bizcol{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--card,#fff)}
+  .bizcol h4{margin:0 0 8px;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .bizcol .cnt{margin-left:auto;font-size:12px;color:var(--sub);font-weight:400}
+  .bizcol ul{margin:0;padding:0;list-style:none}
+  .bizcol li{font-size:13px;line-height:1.5;padding:6px 0;border-bottom:1px solid var(--line);color:var(--ink)}
+  .bizcol li:last-child{border-bottom:0}
+  .bizcol li.tk{cursor:pointer;display:flex;gap:7px;align-items:flex-start}
+  .bizcol li.tk:hover{color:var(--calm)}
+  .tkbox{color:var(--sub);font-size:14px;line-height:1.4;flex:0 0 auto}
+  .bizcol li.tk:hover .tkbox{color:var(--g)}
+  #notesCard summary{cursor:pointer;font-weight:600;font-size:14px}
+  .noterow{font-size:13.5px;padding:5px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
+  .notedel{color:var(--sub);cursor:pointer;flex:0 0 auto}.notedel:hover{color:var(--e)}
+  .bizcol li .from{color:var(--sub);font-size:11.5px}
+  .bizcol.hot{border-color:var(--e)}
+  .bizcol.hot h4{color:var(--e)}
+  .bizcol.empty li{color:var(--sub)}
+  .appr{border-color:var(--e)!important;background:rgba(230,80,80,.05)}
+  .appr h3{margin:0 0 6px;font-size:14px;color:var(--e);display:flex;align-items:center;gap:6px}
+  .appr-row{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+  .appr-row .txt{flex:1;font-size:13px;line-height:1.4}
+  .appr-row .src{color:var(--sub);font-size:11px}
+  .appr-btn{border:0;border-radius:8px;padding:6px 13px;font-weight:700;cursor:pointer;font-size:13px;flex:0 0 auto}
+  .appr-ok{background:#2a9d54;color:#fff}
+  .appr-no{background:transparent;border:1px solid var(--line);color:var(--sub);font-weight:400}
+  .appr-done{font-size:12px;color:var(--sub);padding:4px 0}
+  .mood-row{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+  .mood-big{display:flex;flex-direction:column;gap:3px}
+  .mood-big .ml{font-size:11px;color:var(--sub)}
+  .mood-big .mv{font-size:16px;font-weight:700}
+  .syn-bar{width:110px;height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+  .syn-fill{height:100%;border-radius:4px}
+  .mood-concern{font-size:12.5px;color:var(--e);margin-top:8px}
+  .mood-issue{font-size:12.5px;color:var(--ink);padding:2px 0}
+  .trend-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+  .trend-item{display:flex;flex-direction:column;gap:3px;min-width:74px}
+  .trend-item .tl{font-size:11px;color:var(--sub)}
+  .trend-item .tv{font-size:13px;font-weight:700;display:flex;align-items:center;gap:3px}
+  .trend-item .spark{display:block}
+  .trend-item .up{color:#c0392b}.trend-item .down{color:#2a9d54}.trend-item .flat{color:var(--sub)}
+  #bizObs .h{font-weight:700;font-size:14px;margin-bottom:4px}
+  #bizObs .s{font-size:13.5px;color:var(--sub);line-height:1.6}
+  .chatbar{display:flex;gap:8px;align-items:center}
+  /* 问它 two-column: left = vertical chat list, right = thread */
+  .askwrap{display:flex;gap:14px;align-items:flex-start;margin-top:14px}
+  .chatside{flex:0 0 200px;position:sticky;top:12px;display:flex;flex-direction:column;gap:8px}
+  .chatside #chatNew{width:100%}
+  .askmain{flex:1;min-width:0}
+  .chattabs{display:flex;flex-direction:column;gap:6px;max-height:72vh;overflow-y:auto;scrollbar-width:thin}
+  .chattabs .chattab{max-width:none;width:100%}
+  .chattabs .chattab .t{max-width:none;flex:1}
+  @media(max-width:720px){
+    .askwrap{flex-direction:column}
+    .chatside{flex:auto;width:100%;position:static}
+    .chattabs{max-height:34vh}   /* vertical + scrollable on top, so all chats stay visible (not a hidden horizontal row) */
+  }
+  .chattab{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:6px 10px;border:1px solid var(--line);border-radius:16px;background:var(--card,#fff);font-size:12.5px;color:var(--sub);cursor:pointer;flex:0 0 auto;max-width:180px}
+  .chattab .t{overflow:hidden;text-overflow:ellipsis;max-width:130px}
+  .chattab.on{border-color:var(--ink);color:var(--ink);background:rgba(0,0,0,.03);font-weight:600}
+  .chattab .x{opacity:.45;font-size:14px;line-height:1}
+  .chattab .x:hover{opacity:1;color:var(--e)}
+  .chattab.unread{border-color:var(--ink);color:var(--ink);font-weight:600}
+  .chattab .udot{width:7px;height:7px;border-radius:50%;background:#3b82f6;flex:0 0 auto;box-shadow:0 0 0 2px rgba(59,130,246,.2)}
+  .chattab .tspin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite;flex:0 0 auto}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* occasions */
+  #occasions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .occ{flex:1;min-width:210px;background:linear-gradient(135deg,#fdf3f4,#fbeee6);border:1px solid #f0dde0;border-radius:13px;padding:14px 16px}
+  .occ.soon{border-color:#e8b7bd;box-shadow:0 2px 10px rgba(201,123,132,.15)}
+  .occ .nm{font-weight:700;font-size:15px}
+  .occ .cd{font-size:12px;color:var(--e);margin:3px 0 6px}
+  .occ .gf{font-size:12.5px;color:var(--sub)}
+  .occ .big{font-size:22px;font-weight:700;color:var(--e)}
+  .rank{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .rank:last-child{border-bottom:0}
+  .score{flex:0 0 auto;width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff}
+  .rank .bd{flex:1}
+  .rank .mx{font-size:11px;color:var(--sub);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
+  .mx b{color:var(--ink);font-weight:600}
+  /* ai usage */
+  .us>.hd,.usr{display:grid;grid-template-columns:1.4fr .5fr .8fr .7fr;gap:8px;align-items:center;padding:6px 0;font-size:13px}
+  .us>.hd{color:var(--sub);font-size:11px;border-bottom:1px solid var(--line)}
+  .usr{border-bottom:1px dashed var(--line)}
+  .usr:last-child{border-bottom:0}
+  .usr .rt{text-align:right;font-variant-numeric:tabular-nums}
+  .usr .nm{display:flex;align-items:center;gap:7px}
+  .usdot{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+  .ustot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-weight:700}
+  .ustot .big{font-size:20px;color:var(--warn)}
+  .rank .chk{width:20px;height:20px;border:1.5px solid var(--sub);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
+  .rank.done .chk{background:var(--calm);border-color:var(--calm)}
+  .rank.done .tx{text-decoration:line-through;opacity:.5}
+  /* game */
+  .lvcard{background:linear-gradient(135deg,#f4efe6,#efe7f0);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .lvtop{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .lvicon{font-size:44px}
+  .lvname{font-size:22px;font-weight:700}
+  .lvsub{font-size:13px;color:var(--sub)}
+  .hbar{height:16px;background:#eae4dc;border-radius:10px;overflow:hidden;margin:14px 0 6px}
+  .hfill{height:100%;background:linear-gradient(90deg,#c97b84,#5a8a6a);transition:width .6s}
+  .gstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:16px}
+  .gstat{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:12px;text-align:center}
+  .gstat .n{font-size:20px;font-weight:700}.gstat .l{font-size:11px;color:var(--sub);margin-top:2px}
+  .quest{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .quest:last-child{border-bottom:0}
+  .qchk{width:20px;height:20px;border:1.5px solid var(--sub);border-radius:6px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+  .quest.done .qchk{background:var(--calm);border-color:var(--calm)}
+  .quest.auto .qchk{border-style:dashed;cursor:default}
+  .quest.manual .qchk{cursor:pointer}
+  .quest.done .qtx{opacity:.55;text-decoration:line-through}
+  .qxp{margin-left:auto;font-size:11px;color:var(--sub)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 12px;margin:4px}
+  .badge.locked{opacity:.5}
+  /* narrative addendum */
+  .narbox{background:linear-gradient(135deg,#eef2f6,#f3eef2);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-bottom:16px}
+  .narbox .h{font-size:13px;font-weight:700;color:var(--g);margin-bottom:6px}
+  .narbox .h small{color:var(--sub);font-weight:400;margin-left:8px}
+  .narbox p{font-size:13.5px;color:#4a453f;margin:4px 0}
+  .narbox li{font-size:13.5px;margin:3px 0 3px 18px}
+  /* grouped nav */
+  #subnav{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:-14px 0 22px}
+  #subnav:empty{display:none}
+  .subbtn{border:1px solid var(--line);background:transparent;color:var(--sub);padding:5px 14px;border-radius:16px;font-size:13px;cursor:pointer}
+  .subbtn.on{background:var(--soft);color:var(--ink);border-color:var(--sub)}
+  .whotoggle{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:20px;overflow:hidden;font-size:13.5px}
+  .whotoggle b{background:var(--ink);color:#fff;padding:7px 14px;font-weight:600}
+  .whotoggle a{color:var(--sub);padding:7px 14px;text-decoration:none}
+  .whotoggle a:hover{background:var(--soft);color:var(--ink)}
+  /* compact game strip (今天) */
+  .gstrip{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#f4efe6,#efe7f0);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:16px;flex-wrap:wrap}
+  .gstrip.soft{background:var(--soft)}
+  .gstrip .gi{font-size:30px}
+  .gstrip .gl{font-weight:700;font-size:15px}
+  .gstrip .gsub{font-size:12px;color:var(--sub)}
+  .gstrip .gbar{flex:1;min-width:120px;height:12px;background:#eae4dc;border-radius:8px;overflow:hidden}
+  .gstrip .gbar .f{height:100%;background:linear-gradient(90deg,#c97b84,#5a8a6a)}
+  .gstrip .gpill{font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px 10px;text-align:center}
+  .gstrip .gmore{font-size:12px;color:var(--g);cursor:pointer;text-decoration:none}
+  /* ---- mobile ---- */
+  @media(max-width:600px){
+    .wrap{padding:14px 11px 60px}
+    header h1{font-size:19px} header p{font-size:12.5px}
+    nav{gap:5px;padding:8px 0;margin:14px 0 18px}
+    nav button{padding:6px 12px;font-size:12.5px}
+    .whotoggle{font-size:12px} .whotoggle b,.whotoggle a{padding:6px 10px}
+    #subnav{margin:-8px 0 16px}
+    .grid{grid-template-columns:repeat(2,1fr)!important}
+    .two,.fair{grid-template-columns:1fr!important}
+    .card{padding:14px}
+    .kpi .num{font-size:22px}
+    .feed{height:320px!important;max-height:320px!important}
+    #liveFeed{height:340px!important;max-height:340px!important}
+    .bub{max-width:88%}
+    .occ{min-width:100%}
+    .chartbox{height:220px}
+    .livebar{gap:8px;font-size:12px}
+    .lvtop{gap:12px} .lvicon{font-size:36px} .lvname{font-size:19px}
+    .gstrip{gap:8px} .gstrip .gi{font-size:26px}
+    .rank .score,.score{width:34px;height:34px;font-size:14px}
+    .hm-cell{width:11px;height:11px}
+    .draftbox .d{font-size:14px}
+    .todocol h4{font-size:13px}
+  }
+
+</style>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2d2a26">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Relate">
+<link rel="apple-touch-icon" href="/icon-180.png">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Relate</h1>
+    <p>实时</p>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--g)"></span><span class="me-name">我</span></span>
+      <span><span class="dot" style="background:var(--e)"></span><span class="tg-name">对方</span></span>
+    </div>
+  </header>
+
+  <nav>
+    <button class="on" data-g="today">📍 今天</button>
+    <button data-g="analysis">📊 分析</button>
+    <button data-g="depth">📖 深读</button>
+    <button data-g="ask">💬 问它</button>
+    <button data-g="game">🎮 闯关</button>
+    <span style="flex:1"></span>
+    <span class="whotoggle"><b class="on tg-name">对方</b></span>
+  </nav>
+  <div id="subnav"></div>
+
+
+  <!-- ============ 实时 ============ -->
+  <section id="live" class="on" data-group="today">
+    <div id="careBanner" class="care" style="display:none;margin-bottom:16px"></div>
+    <div id="trendStrip" class="card" style="display:none"></div>
+    <div id="gameStrip"></div>
+    <div id="occasions"></div>
+    <div class="livebar">
+      <span><span class="ldot" id="ldot"></span> <b id="lstat">连接中…</b></span>
+      <span class="tagm" id="lai">AI</span>
+      <span class="tagm" id="lvoice">🎙 语音</span>
+      <span class="tagm" id="lwait"></span>
+      <button id="notifyBtn" class="tagm" style="cursor:pointer;border:1px solid var(--line)" onclick="enableNotifications()">🔔 开启通知</button>
+      <span style="flex:1"></span>
+      <span class="tagm" id="lclock"></span>
+    </div>
+    <div class="grid" id="liveKpis"></div>
+    <div class="card">
+      <h3><span id="lfeedTitle">实时对话 · <span class="tg-name">对方</span></span> <small id="lfeedn"></small></h3>
+      <div class="feed" id="liveFeed" style="height:420px;max-height:420px"></div>
+    </div>
+    <div class="two" style="margin-top:14px">
+      <div class="card">
+        <h3>AI 实时观察 <small id="lbriefage"></small></h3>
+        <div id="liveBrief"><span class="tagm">积累中…</span></div>
+      </div>
+      <div class="card">
+        <h3>其他对话 <small>私聊 / 小群 · 不含大群与公众号</small></h3>
+        <div class="feed" id="otherFeed" style="height:200px;max-height:200px"><span class="tagm" id="othernone">暂无</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 待办 ============ -->
+  <section id="todo" data-group="today">
+    <div class="bothnote">从<b>当前对话上下文</b>持续提炼的待办：需回复、敏感点（回复时的雷区）、承诺（含是否靠谱）、需讨论。可点选完成。下面还能基于聊天风格与历史生成<b>回复草稿</b>。</div>
+    <div class="two" style="margin-bottom:14px">
+      <div class="card">
+        <h3>✍️ 建议回复 · <span class="tg-name">对方</span> <small>基于历史与当前语境</small></h3>
+        <button class="btn primary" id="genMain">生成回复草稿</button>
+        <div id="draftMain"></div>
+      </div>
+      <div class="card">
+        <h3>其他对话回复 <small id="otherChatName">最活跃的一个</small></h3>
+        <button class="btn" id="genOther">生成回复草稿</button>
+        <div id="draftOther"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <h3>🎯 待办优先级 · 前 10 <small>严重性 · 时效 · 提及频率 · 情绪 综合评分（仅 <span class="tg-name">对方</span>）</small></h3>
+      <div id="todoRanked"></div>
+      <a id="todoMore" style="display:inline-block;margin-top:12px;color:var(--g);cursor:pointer;font-size:13px">▾ 展开其余待办与分类明细</a>
+    </div>
+    <div id="todoRest" style="display:none">
+      <div class="card" style="margin-bottom:14px"><h3>其余待办 <small id="restCnt"></small></h3><div id="todoRestList"></div></div>
+      <div class="two" id="todoGrid"></div>
+    </div>
+    <div class="card" id="todoStash" style="margin-top:14px;display:none">
+      <h3>✅ 已处理 / 已过时 <small>AI 根据你后续的回应自动归档</small></h3>
+      <div id="stashList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 店铺概览 (business only) ============ -->
+  <section id="bizhome" data-group="bizhome">
+    <div class="bothnote">你的<span class="org-name"></span>幕僚长视角：谁在等你、你答应了什么、卡在哪、现在最该做的事。</div>
+    <div id="bizApprovals" class="card" style="display:none"></div>
+    <div id="bizMood" class="card" style="display:none"></div>
+    <div id="bizObs" class="card" style="display:none"></div>
+    <div id="bizBoard" class="bizboard"><span class="tagm">正在整理状态…（第一次需要 AI 观察一轮，约十几秒）</span></div>
+  </section>
+
+  <!-- ============ 问它 ============ -->
+  <section id="ask" data-group="ask">
+    <div class="bothnote">你的私人助理 + 关系顾问。既能<b>回忆</b>你和<span class="tg-pr">TA</span>的历史（带出处）、给出<b>成熟的关系/心理建议</b>（依恋类型、Gottman、健康度、期待是否合理），也能帮你<b>出主意、规划惊喜、写道歉/情话、送礼、以及任何其他问题</b>。例：<i>"<span class="tg-pr">TA</span>的依恋类型是什么？"</i>、<i>"这段关系健康吗？"</i>、<i>"帮我写一句真诚的道歉"</i>、<i>"周末想给<span class="tg-pr">TA</span>惊喜，有什么点子？"</i></div>
+
+    <div class="card" id="checkupCard">
+      <h3>🩺 关系体检 <small id="checkupWhen">依恋类型 · 健康度 · 期待成熟度 · 绿灯红旗</small>
+        <button class="btn" id="checkupBtn" style="float:right">重新体检</button></h3>
+      <div id="checkupOut"><span class="tagm">点「重新体检」生成一份完整评估（每天 20:00 也会自动更新）。</span></div>
+    </div>
+
+    <div class="askwrap">
+      <aside class="chatside">
+        <button class="btn" id="chatNew" title="开一个新对话">＋ 新对话</button>
+        <div class="chattabs" id="chatTabs"></div>
+      </aside>
+      <div class="askmain">
+        <details class="card" id="notesCard">
+          <summary>📝 背景笔记 · 我告诉它的事 <small style="color:var(--sub)">（也可在对话里直接说「记住 …」）</small> <span id="notesN" style="color:var(--sub)"></span></summary>
+          <div class="notesin" style="display:flex;gap:8px;margin:10px 0"><input id="noteInput" placeholder="加一条背景/事实，如「某同事上个月离职了」「下周三有个重要的约」" style="flex:1"><button class="btn" id="noteAdd">记下</button></div>
+          <div id="notesList"></div>
+        </details>
+        <div class="card" id="askout"><span class="tagm">在下面输入问题。每个对话都会自动保存、自动起标题，可随时切换或新建。</span></div>
+        <div class="askin" style="margin-top:10px">
+          <input id="askq" placeholder="问问这段关系，或让我帮你做点什么…" />
+          <button class="btn primary" id="askbtn">问</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 闯关 ============ -->
+  <section id="game" data-group="game">
+    <div class="bothnote">把"少吵架、多兑现"变成一个可以升级的游戏：冲突越少、越平静，等级越高；大冲突会掉级。完成每日"升级策略"攒经验。<b>这不是打分谁对谁错，是给你一个坚持下去的动力条。</b></div>
+    <div id="gameMain"></div>
+    <div class="two" style="margin-top:14px">
+      <div class="card"><h3>🎯 今日升级策略 <small>完成可加经验</small></h3><div id="quests"></div></div>
+      <div class="card"><h3>🏆 成就</h3><div id="badges"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>🤖 AI 用量 · 今日 <small id="aiCostTop"></small></h3>
+      <div id="aiUsage"><span class="tagm">加载中…</span></div>
+    </div>
+  </section>
+
+  <!-- ============ 总览 ============ -->
+  <section id="t1" data-group="analysis">
+    <div class="bothnote">这些分析由 AI 基于完整聊天记录实时整理，原则是不站队：尽量同时呈现两个人的合理之处与盲区。它只看得到文字，看不到线下的拥抱和眼神——请带着这个前提阅读。</div>
+    <div class="grid" id="anaKpis"></div>
+    <div class="card" style="margin-bottom:14px">
+      <h3>每天的消息量<small>高峰往往同时是最甜或最痛的日子</small></h3>
+      <div class="chartbox"><canvas id="cDaily"></canvas></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h3>每月消息量</h3>
+        <div class="chartbox"><canvas id="cMonthly"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>"对不起"的分布</h3>
+        <div class="chartbox"><canvas id="cSorry"></canvas></div>
+      </div>
+    </div>
+    <div class="two" style="margin-top:14px">
+      <div class="card">
+        <h3>"爱你 / 想你"的分布</h3>
+        <div class="chartbox"><canvas id="cLove"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>凌晨 0–6 点消息占比</h3>
+        <div class="chartbox"><canvas id="cNight"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 热力图 ============ -->
+  <section id="t2" data-group="analysis">
+    <div class="card" style="margin-bottom:14px">
+      <h3>冲突热力图<small>像 GitHub contribution 一样，只是这里的"贡献"是争执 —— 颜色越深，那天的冲突词汇浓度越高</small></h3>
+      <div class="hm-scroll">
+        <div class="hm-months" id="hmMonths"></div>
+        <div class="hm-body">
+          <div class="hm-days"><span></span><span>一</span><span></span><span>三</span><span></span><span>五</span><span></span></div>
+          <div class="hm-grid" id="hmGrid"></div>
+        </div>
+      </div>
+      <div class="hm-legend">
+        <span style="color:var(--sub);font-size:12px">平静</span>
+        <i class="hm-cell l0"></i><i class="hm-cell l1"></i><i class="hm-cell l2"></i><i class="hm-cell l3"></i><i class="hm-cell l4"></i><i class="hm-cell l5"></i>
+        <span style="color:var(--sub);font-size:12px">激烈</span>
+        <span style="color:var(--sub);font-size:12px;margin-left:16px">▨ = 无消息</span>
+      </div>
+      <div class="hm-tip" id="hmTip"></div>
+      <div class="note">强度分 = 当天冲突相关词汇（对不起、生气、难受、分手、崩溃…）的加权密度，是近似值不是判决书：个别深色天可能只是情绪浓度高，而不是吵架。</div>
+    </div>
+  </section>
+
+  <!-- ============ 档案 ============ -->
+  <section id="t3" data-group="depth"><div id="narT3"></div>
+    <div class="bothnote">每一次都按"起因 → 过程 → 收场 → 双方各自站得住/站不住的部分"记录。展开细看时，试着找自己的影子，而不是对方的错。</div>
+    <div id="eps"><span class="tagm">AI 每天 20:00 基于聊天记录生成争执档案，生成后会显示在这里。</span></div>
+  </section>
+
+  <!-- ============ 视角 ============ -->
+  <section id="t4" data-group="depth"><div id="narT4"></div>
+    <div class="bothnote">两个人的视角会对称呈现。请先读<b>自己</b>那张的"盲区"，再读对方那张的"合理之处"——顺序反过来，这一页就白做了。</div>
+    <div class="card"><span class="tagm">AI 每天 20:00 基于聊天记录生成双方视角，生成后会显示在这里。</span></div>
+  </section>
+
+  <!-- ============ 循环 ============ -->
+  <section id="t5" data-group="depth"><div id="narT5"><span class="tagm">AI 每 12 小时更新一次「循环与出路」的观察，生成后会显示在这里。</span></div>
+  </section>
+
+  <!-- ============ 关心 ============ -->
+  <section id="t6" data-group="depth"><div id="narT6"></div>
+    <div class="care">
+      <h3>最重要的一页</h3>
+      <p>争执里有时会出现超出普通吵架范畴的话——比如"不想过了""不想醒来"。结合失眠、长时间哭泣、发抖等身体反应，这些话<b>不应该被当作气话</b>，无论说出口的时候是什么心情。</p>
+      <p>每个人都可能背着旧伤在经营一段关系。那些不是谁的错，但它们的重量不该全部压在对方身上，也压不动。</p>
+      <p><b>如果你们感到吃力，请认真考虑找专业的人聊一聊。</b>你们都值得在不依赖任何人"做对"的情况下，也感到安全。</p>
+      <p>无论这段关系走向哪里，重大的决定请当面、平静地进行，选双方都有朋友家人支持的时机——这是对彼此最基本的善意。</p>
+      <div class="res">
+        <b>求助资源</b><br>
+        澳大利亚：Lifeline <b>13 11 14</b>（24h）· Beyond Blue 1300 22 4636<br>
+        中国大陆：心理援助热线 <b>12356</b><br>
+        其他地区：请联系当地的心理危机热线或急救电话
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">由 AI 基于聊天记录整理 · 数据只是镜子，决定权永远在真实的人手里</div>
+</div>
+
+<script>
+// grouped two-level nav
+const GROUPS={
+ today:{stack:true,secs:[['live'],['todo']]},
+ analysis:{secs:[['t1','总览'],['t2','冲突热力图']]},
+ depth:{secs:[['t3','争执档案'],['t4','两个人的视角'],['t5','循环与出路'],['t6','最重要的一页']]},
+ ask:{stack:true,secs:[['ask']]},
+ game:{stack:true,secs:[['game']]}
+};
+function showGroup(g){
+ document.querySelectorAll('nav button[data-g]').forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+ const grp=GROUPS[g], sub=document.getElementById('subnav');
+ document.querySelectorAll('section').forEach(s=>s.classList.remove('on'));
+ if(grp.stack){grp.secs.forEach(s=>{const el=document.getElementById(s[0]);if(el)el.classList.add('on');});sub.innerHTML='';}
+ else{
+  sub.innerHTML=grp.secs.map((s,i)=>`<button class="subbtn${i===0?' on':''}" data-s="${s[0]}">${s[1]}</button>`).join('');
+  document.getElementById(grp.secs[0][0]).classList.add('on');
+  sub.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+   sub.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+   document.querySelectorAll('section').forEach(x=>x.classList.remove('on'));
+   document.getElementById(b.dataset.s).classList.add('on');resizeCharts();window.scrollTo({top:0});
+  });
+ }
+ resizeCharts();
+ window.scrollTo({top:0});
+}
+function resizeCharts(){setTimeout(()=>{if(window.Chart)document.querySelectorAll('section.on canvas').forEach(c=>{const ch=Chart.getChart(c);if(ch)ch.resize();});},60);}
+document.querySelectorAll('nav button[data-g]').forEach(b=>b.onclick=()=>showGroup(b.dataset.g));
+showGroup('today');
+
+// charts start empty; live.js fills them from /api/analytics and sets the series labels from /api/space
+if(window.Chart){
+Chart.defaults.font.family='-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+Chart.defaults.color='#7a746c';
+const G='#4a7ba6', E='#c97b84';
+const pair=()=>[{label:'我',data:[],backgroundColor:G,borderRadius:6},{label:'对方',data:[],backgroundColor:E,borderRadius:6}];
+const barOpts=()=>({responsive:true,maintainAspectRatio:false,scales:{x:{grid:{display:false}},y:{grid:{color:'#f0ebe4'}}}});
+
+new Chart(cDaily,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#8b7f70',backgroundColor:'rgba(139,127,112,.12)',fill:true,pointRadius:0,borderWidth:1.5,tension:.3}]},
+ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{maxTicksLimit:8,callback:function(v){return String(this.getLabelForValue(v)).slice(5)}},grid:{display:false}},y:{grid:{color:'#f0ebe4'}}}}});
+
+new Chart(cMonthly,{type:'bar',data:{labels:[],datasets:pair()},options:barOpts()});
+new Chart(cSorry,{type:'bar',data:{labels:[],datasets:pair()},options:barOpts()});
+new Chart(cLove,{type:'bar',data:{labels:[],datasets:pair()},options:barOpts()});
+
+new Chart(cNight,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#b3542e',backgroundColor:'rgba(179,84,46,.1)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:'#b3542e'}]},
+ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'%'}}},scales:{x:{grid:{display:false}},y:{grid:{color:'#f0ebe4'},ticks:{callback:v=>v+'%'}}}}});
+}
+</script>
+<script src="/pwa.js?v=1784820269"></script>
+<script src="/live.js?v=1784820269"></script>
+</body>
+</html>

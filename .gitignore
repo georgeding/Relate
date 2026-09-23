@@ -1,0 +1,20 @@
+# deps
+node_modules/
+
+# hub state + every space's config (secrets) and chat data
+spaces/
+
+# a worker run by hand: its config (secrets) and data
+config*.json
+data*/
+
+# your own shared plugins are private; only plugins/builtin/ is tracked
+plugins/*.js
+
+# logs, scratch, binaries
+*.log
+*.tmp
+*.exe
+
+# installer build output
+dist/

@@ -1,0 +1,42 @@
+name: Release
+# Push a tag like v1.0.0 → tests, then a GitHub Release with the Windows installer and the portable zip.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Install Inno Setup
+        shell: pwsh
+        run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Build installer + portable zip
+        shell: pwsh
+        run: |
+          $v = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { (node -p "require('./package.json').version") }
+          $env:RELATE_VERSION = $v.TrimStart('v')
+          node desktop/build.mjs
+      - uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
+        with:
+          files: |
+            dist/RelateSetup-*.exe
+            dist/Relate-portable-*.zip
+          generate_release_notes: true
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type != 'tag'
+        with:
+          name: relate-windows
+          path: |
+            dist/RelateSetup-*.exe
+            dist/Relate-portable-*.zip
