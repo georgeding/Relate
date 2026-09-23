@@ -165,6 +165,14 @@ Pushing a `v*` tag builds both downloads and publishes them to [Releases](../../
 Docs: [platform & APIs](docs/PLATFORM.md) · [plugins](docs/PLUGINS.md) · [bridging apps](docs/INGEST.md) ·
 [connector risks](docs/CONNECTORS-AND-RISK.md)
 
+## Thanks
+
+Relate stands on these open-source projects: [Node.js](https://nodejs.org), the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Chart.js](https://www.chartjs.org), [web-push](https://github.com/web-push-libs/web-push), [node-postgres](https://node-postgres.com) and [Zod](https://zod.dev). The Windows installer is built with [Inno Setup](https://jrsoftware.org/isinfo.php); its Simplified Chinese translation is by Zhenghan Yang.
+
+## Friends
+
+- [LINUX DO](https://linux.do) — a Chinese tech community
+
 ## License
 
 [AGPL-3.0](LICENSE) — free to use, change and self-host. If you offer a modified version to others as a service,

@@ -160,6 +160,14 @@ node desktop/build.mjs    # 构建 Windows 安装包 + 便携版 → dist/（需
 文档：[平台与 API](docs/PLATFORM.md) · [插件](docs/PLUGINS.md) · [桥接应用](docs/INGEST.md) ·
 [连接器风险](docs/CONNECTORS-AND-RISK.md)
 
+## 致谢
+
+Relate 站在这些开源项目的肩膀上：[Node.js](https://nodejs.org)、[MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[Chart.js](https://www.chartjs.org)、[web-push](https://github.com/web-push-libs/web-push)、[node-postgres](https://node-postgres.com)、[Zod](https://zod.dev)。Windows 安装包由 [Inno Setup](https://jrsoftware.org/isinfo.php) 构建，简体中文安装界面由 Zhenghan Yang 翻译。
+
+## 友情链接
+
+- [LINUX DO](https://linux.do) —— 新的理想型社区
+
 ## 许可证
 
 [AGPL-3.0](LICENSE) —— 可自由使用、修改和自部署。如果你将修改后的版本以服务形式提供给他人，需在相同许可证下公开你的修改。商业许可证可向版权持有方获取；外部贡献需签署贡献者许可协议（CLA）。

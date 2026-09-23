@@ -1,6 +1,6 @@
 {
   "name": "relate",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "description": "Self-hosted AI assistant for your chats: connect Telegram, any HTTP/SSE source, voice recordings and (optionally) WeChat into spaces (relationship, business, team) with live memory, todos, plugins and an MCP server.",
