@@ -167,7 +167,7 @@ Docs: [platform & APIs](docs/PLATFORM.md) · [plugins](docs/PLUGINS.md) · [brid
 
 ## Thanks
 
-Relate stands on these open-source projects: [Node.js](https://nodejs.org), the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Chart.js](https://www.chartjs.org), [web-push](https://github.com/web-push-libs/web-push), [node-postgres](https://node-postgres.com) and [Zod](https://zod.dev). The Windows installer is built with [Inno Setup](https://jrsoftware.org/isinfo.php); its Simplified Chinese translation is by Zhenghan Yang.
+Relate stands on these open-source projects: [Node.js](https://nodejs.org), the [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk), [Chart.js](https://www.chartjs.org), [web-push](https://github.com/web-push-libs/web-push), [node-postgres](https://node-postgres.com) and [Zod](https://zod.dev). Thanks also to [@hicccc77](https://github.com/hicccc77) for their open-source work and inspiration. The Windows installer is built with [Inno Setup](https://jrsoftware.org/isinfo.php); its Simplified Chinese translation is by Zhenghan Yang.
 
 ## Friends
 

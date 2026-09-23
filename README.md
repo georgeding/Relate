@@ -162,7 +162,7 @@ node desktop/build.mjs    # 构建 Windows 安装包 + 便携版 → dist/（需
 
 ## 致谢
 
-Relate 站在这些开源项目的肩膀上：[Node.js](https://nodejs.org)、[MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[Chart.js](https://www.chartjs.org)、[web-push](https://github.com/web-push-libs/web-push)、[node-postgres](https://node-postgres.com)、[Zod](https://zod.dev)。Windows 安装包由 [Inno Setup](https://jrsoftware.org/isinfo.php) 构建，简体中文安装界面由 Zhenghan Yang 翻译。
+Relate 站在这些开源项目的肩膀上：[Node.js](https://nodejs.org)、[MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[Chart.js](https://www.chartjs.org)、[web-push](https://github.com/web-push-libs/web-push)、[node-postgres](https://node-postgres.com)、[Zod](https://zod.dev)。也感谢 [@hicccc77](https://github.com/hicccc77) 的开源工作和启发。Windows 安装包由 [Inno Setup](https://jrsoftware.org/isinfo.php) 构建，简体中文安装界面由 Zhenghan Yang 翻译。
 
 ## 友情链接
 
