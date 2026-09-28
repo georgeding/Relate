@@ -17,7 +17,10 @@ public static class RelateWin {
   [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
+  [DllImport("user32.dll")] public static extern bool ScreenToClient(IntPtr h, ref POINT p);
+  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
 }
 '@
 [void][RelateWin]::SetProcessDPIAware()   # UIA rects and the PrintWindow bitmap must share physical pixels
@@ -46,29 +49,44 @@ function Render($hwnd) {
   return @{ bmp = $bmp; left = $r.Left; top = $r.Top }
 }
 
-# luminance spread in a vertical strip — the avatar side of a bubble row has far more detail than empty margin
-function StripSpread($shot, $x0, $x1, $y0, $y1) {
-  $min = 255; $max = 0; $n = 0; $sum = 0.0; $sq = 0.0
-  for ($y = [Math]::Max(0, $y0); $y -lt [Math]::Min($shot.bmp.Height, $y1); $y += 3) {
-    for ($x = [Math]::Max(0, $x0); $x -lt [Math]::Min($shot.bmp.Width, $x1); $x += 3) {
-      $c = $shot.bmp.GetPixel($x, $y); $l = 0.299 * $c.R + 0.587 * $c.G + 0.114 * $c.B
-      $sum += $l; $sq += $l * $l; $n++
-    }
-  }
-  if ($n -eq 0) { return 0 }
-  $mean = $sum / $n; return [Math]::Sqrt([Math]::Max(0, $sq / $n - $mean * $mean))
-}
-
+# Whose bubble is it? WeChat draws your own bubbles green (light #95EC69, dark ~#3EB575) and aligned right;
+# everyone else's are white/grey and aligned left. Calibrated against WeFlow's isSend on real chats:
+# 14/14 decided correctly with these rules; anything ambiguous is '?' rather than a guess.
 function Side($shot, $rect) {
   if (-not $shot) { return '?' }
-  $x0 = [int]($rect.X - $shot.left); $x1 = [int]($rect.X + $rect.Width - $shot.left)
-  $y0 = [int]($rect.Y - $shot.top); $y1 = [int]([Math]::Min($rect.Y + $rect.Height, $rect.Y + 60) - $shot.top)   # avatar sits at the top of the row
-  $L = StripSpread $shot ($x0 + 6) ($x0 + 60) $y0 $y1
-  $R = StripSpread $shot ($x1 - 60) ($x1 - 6) $y0 $y1
-  if ([Math]::Max($L, $R) -lt 6) { return '?' }
-  if ($R -gt $L * 1.6) { return 'me' }
-  if ($L -gt $R * 1.6) { return 'them' }
+  $bmp = $shot.bmp
+  $x0 = [Math]::Max(0, [int]($rect.X - $shot.left)); $x1 = [Math]::Min($bmp.Width, [int]($rect.X + $rect.Width - $shot.left))
+  $y0 = [Math]::Max(0, [int]($rect.Y - $shot.top)); $y1 = [Math]::Min($bmp.Height, [int]($rect.Y + $rect.Height - $shot.top))
+  if ($x1 - $x0 -lt 20 -or $y1 - $y0 -lt 10) { return '?' }   # clipped out of the window
+  $bg = $bmp.GetPixel($x0 + 2, $y0 + 2)
+  $n = 0; $green = 0; $minX = $x1; $maxX = $x0
+  for ($y = $y0 + 2; $y -lt $y1 - 2; $y += 3) {
+    for ($x = $x0 + 2; $x -lt $x1 - 2; $x += 3) {
+      $c = $bmp.GetPixel($x, $y); $n++
+      if ($c.G -gt 140 -and ($c.G - $c.R) -gt 40 -and ($c.G - $c.B) -gt 40) { $green++ }
+      if ([Math]::Abs($c.R - $bg.R) + [Math]::Abs($c.G - $bg.G) + [Math]::Abs($c.B - $bg.B) -gt 30) { if ($x -lt $minX) { $minX = $x }; if ($x -gt $maxX) { $maxX = $x } }
+    }
+  }
+  if ($n -eq 0) { return '?' }
+  $w = [double]($x1 - $x0)
+  $leftGap = ($minX - $x0) / $w; $rightGap = ($x1 - $maxX) / $w
+  if ($green / $n -ge 0.02) { return 'me' }                      # green bubble
+  if ($maxX -le $minX) { return '?' }                            # nothing drawn
+  if ($rightGap -gt 0.15 -and $leftGap -lt 0.10) { return 'them' }   # content hugs the left (their avatar + bubble)
+  if ($leftGap -gt 0.15 -and $rightGap -lt 0.10) { return 'me' }     # hugs the right (your image/file/sticker)
   return '?'
+}
+
+# a click posted straight to the WeChat window at an element's centre — no cursor movement, works while
+# WeChat is behind other windows. (UIA Select()/Invoke() on chat cells do nothing in Weixin 4.x.)
+function PostClick($hwnd, $el) {
+  $r = $el.Current.BoundingRectangle
+  $p = New-Object RelateWin+POINT; $p.X = [int]($r.X + $r.Width / 2); $p.Y = [int]($r.Y + $r.Height / 2)
+  [void][RelateWin]::ScreenToClient($hwnd, [ref]$p)
+  $lp = [IntPtr](($p.Y -shl 16) -bor ($p.X -band 0xFFFF))
+  [void][RelateWin]::PostMessage($hwnd, 0x0201, [IntPtr]1, $lp)   # WM_LBUTTONDOWN
+  Start-Sleep -Milliseconds 60
+  [void][RelateWin]::PostMessage($hwnd, 0x0202, [IntPtr]0, $lp)   # WM_LBUTTONUP
 }
 
 function Snapshot {
@@ -106,10 +124,13 @@ function Snapshot {
 
 function OpenChat($name) {
   $m = MainWindow; if (-not $m) { return $false }
+  $cur = ById $m.el 'chat_input_field'
+  if ($cur -and [string]$cur.Current.Name -eq $name) { return $true }   # already open — clicking it again would CLOSE it
   $cell = ById $m.el ('session_item_' + $name)
   if (-not $cell) { return $false }
-  try { $cell.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() } catch { $cell.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() }
-  for ($i = 0; $i -lt 20; $i++) { Start-Sleep -Milliseconds 100; $in = ById $m.el 'chat_input_field'; if ($in -and $in.Current.Name -eq $name) { return $true } }
+  if ([RelateWin]::IsIconic($m.hwnd)) { return $false }
+  PostClick $m.hwnd $cell
+  for ($i = 0; $i -lt 25; $i++) { Start-Sleep -Milliseconds 100; $in = ById $m.el 'chat_input_field'; if ($in -and $in.Current.Name -eq $name) { return $true } }
   return $false
 }
 
@@ -125,10 +146,12 @@ function Send($name, $text) {
     Where-Object { $_.Current.Name -match '^(发送|Send)' -and -not $_.Current.IsOffscreen } |
     Sort-Object { [Math]::Abs($_.Current.BoundingRectangle.Bottom - $ir.Bottom) + [Math]::Abs($_.Current.BoundingRectangle.Right - $ir.Right) }) | Select-Object -First 1
   if (-not $btn) { return @{ ok = $false; error = 'Send button not found' } }
-  $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
-  Start-Sleep -Milliseconds 300
-  $left = [string]$in.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value
-  if ($left.Trim().Length -gt 0) { return @{ ok = $false; error = 'text is still in the input box — WeChat did not send it' } }
+  $vp = $in.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+  if (([string]$vp.Current.Value).Trim() -ne $text.Trim()) { return @{ ok = $false; error = 'could not put the text into the WeChat input box' } }
+  try { $btn.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() } catch {}
+  Start-Sleep -Milliseconds 400
+  if (([string]$vp.Current.Value).Trim().Length -gt 0) { PostClick $m.hwnd $btn; Start-Sleep -Milliseconds 500 }   # Invoke ignored → real click
+  if (([string]$vp.Current.Value).Trim().Length -gt 0) { return @{ ok = $false; error = 'text is still in the input box — WeChat did not send it' } }
   return @{ ok = $true }
 }
 
